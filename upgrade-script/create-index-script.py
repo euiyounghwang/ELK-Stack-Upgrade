@@ -112,7 +112,7 @@ if __name__ == "__main__":
     
     '''
     create index with alias from source cluster to target cluster. we only use a specific index for this script
-    (.venv) ➜  python ./upgrade-script/create-index-script.py --es http://tsgvm01362:9200 --source_index wx_order_02072022_22_2_1 --ts http://tsgvm00877:9200
+    (.venv) ➜  python ./upgrade-script/create-index-script.py --es http://dev:9200 --source_index wx_order_02072022_22_2_1 --ts http://dev:9200
 
     '''
     parser = argparse.ArgumentParser(description="Index into Elasticsearch using this script")
