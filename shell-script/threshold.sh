@@ -54,7 +54,7 @@ echo $CURRENT
 if [ "$CURRENT" -gt "$THRESHOLD" ] ; then
    echo here
     mailx -s 'Disk Space Alert' mareiuig@gmail.com << EOF
-Your ENV1 tsgvm01362 ($HOSTNAME) apps partition remaining free space is critically low. Used: $CURRENT%
+Your ENV1 localhost ($HOSTNAME) apps partition remaining free space is critically low. Used: $CURRENT%
 EOF
 fi
 

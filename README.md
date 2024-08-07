@@ -360,7 +360,7 @@ sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgc
 sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local jdoe --backend-roles admin --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
 
-[biadmin@tsgvm00877 ~]$ 
+[biadmin@localhost ~]$ 
 sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local user1 --backend-roles admin --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 Appending to /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
@@ -374,10 +374,10 @@ sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgc
 Appending to /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
 # Delete User:  (It doesn't need to update configuation using sgctl tool script to ES cluster with Search Guard)
-[biadmin@tsgvm00877 ~]$ 
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh delete-user guest --ca-cert /apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem --cert /apps/elasticsearch/elasticsearch-8.12.2/config/kirk.pem --key /apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem --host tsgvm00877 --port 9201 --insecure
+[biadmin@localhost ~]$ 
+sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh delete-user guest --ca-cert /apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem --cert /apps/elasticsearch/elasticsearch-8.12.2/config/kirk.pem --key /apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem --host localhost --port 9201 --insecure
 --
-Successfully connected to cluster supplychain-logging-es8-dev (tsgvm00877) as user CN=kirk,OU=client,O=client,L=test,C=de
+Successfully connected to cluster supplychain-logging-es8-dev (localhost) as user CN=kirk,OU=client,O=client,L=test,C=de
 Internal User user2 has been deleted
 --
 
@@ -386,21 +386,21 @@ Internal User user2 has been deleted
 # Update-Config : 
 
 1) Create a connectin for updating the configuration
-[biadmin@tsgvm00877 ~]$
-/apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh connect --host tsgvm00877 --port 9201 --ca-cert /apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem --cert /apps/elasticsearch/elasticsearch-8.12.2/config/kirk.pem --key /apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem --insecure
+[biadmin@localhost ~]$
+/apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh connect --host localhost --port 9201 --ca-cert /apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem --cert /apps/elasticsearch/elasticsearch-8.12.2/config/kirk.pem --key /apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem --insecure
 --
-Successfully connected to cluster supplychain-logging-es8-dev (tsgvm00877) as user CN=kirk,OU=client,O=client,L=test,C=de
+Successfully connected to cluster supplychain-logging-es8-dev (localhost) as user CN=kirk,OU=client,O=client,L=test,C=de
 --
 
 2) Update configuration to add user
 
-[biadmin@tsgvm00877 ~]$
+[biadmin@localhost ~]$
 
 /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh update-config /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
 /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh update-config /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles_mapping.yml
 --
-Successfully connected to cluster supplychain-logging-es8-dev (tsgvm00877) as user CN=kirk,OU=client,O=client,L=test,C=de
+Successfully connected to cluster supplychain-logging-es8-dev (localhost) as user CN=kirk,OU=client,O=client,L=test,C=de
 Configuration has been updated
 --
 
@@ -412,17 +412,17 @@ Configuration has been updated
 
 
 3) Get configuration
-[biadmin@tsgvm00877 ~]$
+[biadmin@localhost ~]$
 /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh get-config -0 /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/ --output ./
 
 
 
 -- Other Instance
 1) Create a connectin for updating the configuration
-./sgctl-2.0.0.sh connect --host tsgvm00877 --port 9201 --ca-cert ./search-guard-keys/dev/root-ca.pem --cert  ./search-guard-keys/dev/kirk.pem --key  ./search-guard-keys/dev/kirk-key.pem --insecure
+./sgctl-2.0.0.sh connect --host localhost --port 9201 --ca-cert ./search-guard-keys/dev/root-ca.pem --cert  ./search-guard-keys/dev/kirk.pem --key  ./search-guard-keys/dev/kirk-key.pem --insecure
 
--bash-4.2$ ./sgctl-2.0.0.sh connect --host tsgvm00877 --port 9201 --ca-cert ./search-guard-keys/dev/root-ca.pem --cert  ./search-guard-keys/dev/kirk.pem --key  ./search-guard-keys/dev/kirk-key.pem --insecure
-Successfully connected to cluster supplychain-logging-es8-dev (tsgvm00877) as user CN=kirk,OU=client,O=client,L=test,C=de
+-bash-4.2$ ./sgctl-2.0.0.sh connect --host localhost --port 9201 --ca-cert ./search-guard-keys/dev/root-ca.pem --cert  ./search-guard-keys/dev/kirk.pem --key  ./search-guard-keys/dev/kirk-key.pem --insecure
+Successfully connected to cluster supplychain-logging-es8-dev (localhost) as user CN=kirk,OU=client,O=client,L=test,C=de
 
 
 
@@ -461,7 +461,7 @@ $ curl https://test:test@localhost:9201 --insecure
 
 (.venv)
 
-[biadmin@tsgvm00878 ~]$ curl -XGET --user test:test "https://localhost:9201/_cluster/health?pretty" --insecure
+[biadmin@localhost ~]$ curl -XGET --user test:test "https://localhost:9201/_cluster/health?pretty" --insecure
 {
   "cluster_name" : "localhost",
   "status" : "green",
@@ -589,7 +589,7 @@ PUT _cluster/settings
 - Searchguard 8.12
  /apps/elasticsearch/sgctl-2.0.0.sh update-config ./elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles.yml --ca-cert=./elasticsearch-8.12.2/config/root-ca.pem  --key=./elasticsearch-8.12.2/config/kirk-key.pem
 
- apps/elasticsearch/sgctl-2.0.0.sh connect tsgvm00878 --port=9201 --cert=/apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem  --key=/apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem
+ apps/elasticsearch/sgctl-2.0.0.sh connect localhost --port=9201 --cert=/apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem  --key=/apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem
 
 
 ```
@@ -637,7 +637,7 @@ nohup /apps/kibana/kibana-8.12.2/bin/kibana &> /dev/null &
 - Path for Service
 
 ```bash
-[logstash@tsgvm01605 system]$ systemctl status logstash.service
+[logstash@localhost system]$ systemctl status logstash.service
 ● logstash.service - LSB: logstash
    Loaded: loaded (/etc/rc.d/init.d/logstash; bad; vendor preset: disabled)
    Active: active (running) since Wed 2024-06-19 08:42:25 EDT; 1 weeks 2 days ago
@@ -645,8 +645,8 @@ nohup /apps/kibana/kibana-8.12.2/bin/kibana &> /dev/null &
   Process: 1213 ExecStart=/etc/rc.d/init.d/logstash start (code=exited, status=0/SUCCESS)
    CGroup: /system.slice/logstash.service
            └─1267 /apps/java/latest//bin/java -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 -XX:+UseCMSInitiatingOccupancyOnly -XX:+DisableExplicitGC -Djava.awt.headless=true -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -Djava.security.egd=file:/dev/urandom -Dlo...
-[logstash@tsgvm01605 system]$ less /etc/rc.d/init.d/logstash
-[logstash@tsgvm01605 system]$
+[logstash@localhost system]$ less /etc/rc.d/init.d/logstash
+[logstash@localhost system]$
 ```
 
 - Run with /config/conf.d/ : `/home/biadmin/ELK_UPGRADE/logstash-7.13.0/bin/logstash -f /home/biadmin/ELK_UPGRADE/logstash-7.13.0/config/conf.d/`

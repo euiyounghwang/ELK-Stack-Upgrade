@@ -24,7 +24,7 @@ logging:
 
 
   
-#2024-07-17 17:51:23,994 INFO      GET https://tsgvm00877:9201/packetbeat-2024.07.10,packetbeat-2024.07.12,packetbeat-2024.07.15/_settings [status:200 duration:0.004s]
+#2024-07-17 17:51:23,994 INFO      GET https://localhost:9201/packetbeat-2024.07.10,packetbeat-2024.07.12,packetbeat-2024.07.15/_settings [status:200 duration:0.004s]
 #2024-07-17 17:51:23,994 CRITICAL  Pre Instantiation Action kwargs: {'master_timeout': 30}
 #2024-07-17 17:51:23,994 INFO      DRY-RUN MODE.  No changes will be made.
 #2024-07-17 17:51:23,994 INFO      (CLOSED) indices may be shown that may not be acted on by action "delete_indices".

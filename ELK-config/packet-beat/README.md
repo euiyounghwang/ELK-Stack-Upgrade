@@ -105,7 +105,7 @@ packetbeat.protocols.http:
 #----------------------------- Logstash output --------------------------------
 output.logstash:
   # The Logstash hosts
-  hosts: ["tsgvm00876:5044"]
+  hosts: ["localhost:5044"]
 
   # Optional SSL. By default is off.
   # List of root certificates for HTTPS server verifications
@@ -122,7 +122,7 @@ output.logstash:
 #
 setup.kibana:
 #
-  host: "tsgvm00877:5601"
+  host: "localhost:5601"
 
   # Optional protocol and basic auth credentials.
   #protocol: "https"
@@ -138,16 +138,16 @@ setup.kibana:
 #  #============================== Dashboards =====================================
 # setup.dashboards.enabled: true
 
-[biadmin@tsgvm00877 packetbeat-8.12.2-linux-x86_64]$ ./packetbeat setup --dashboards
+[biadmin@localhost packetbeat-8.12.2-linux-x86_64]$ ./packetbeat setup --dashboards
 Loading dashboards (Kibana must be running and reachable)
 Loaded dashboards
-[biadmin@tsgvm00877 packetbeat-8.12.2-linux-x86_64]$
+[biadmin@localhost packetbeat-8.12.2-linux-x86_64]$
 ```
 6) Run packetbeat.yml on each node 
 - Run command manually : `sudo /apps/packetbeat/packetbeat-5.6.4-linux-x86_64/packetbeat -e -c /apps/packetbeat/packetbeat-5.6.4-linux-x86_64/packetbeat.yml -strict.perms=false "publish"` or `sudo /apps/packetbeat/packetbeat-5.6.4-linux-x86_64/packetbeat -e -c /apps/packetbeat/packetbeat-5.6.4-linux-x86_64/packetbeat.yml -d -strict.perms=false "publish"` as background (Start Packetbeat. For sniffing the packets it must be started as root), 
 strict.perms option on this URL (https://dzlab.github.io/2023/04/02/packetbeat-intro/)
 - Run Service : `sudo service packetbeat_service start` (./packetbeat-service.sh)/`sudo service packetbeat_service stop`(./packetbeat-log.sh)
--  sudo /apps/packetbeat/packetbeat-5.6.4-linux-x86_64/packetbeat setup -e -E output.logstash.enabled=false -E output.elasticsearch.hosts=['tsgvm00877:9201'] -E output.elasticsearch.username=biadmin -E output.elasticsearch.password=biadmin -E setup.kibana.host=tsgvm00877:5601 -strict.perms=false
+-  sudo /apps/packetbeat/packetbeat-5.6.4-linux-x86_64/packetbeat setup -e -E output.logstash.enabled=false -E output.elasticsearch.hosts=['localhost:9201'] -E output.elasticsearch.username=biadmin -E output.elasticsearch.password=biadmin -E setup.kibana.host=localhost:5601 -strict.perms=false
 - This is an example of what a document will look like:
 ```bash
 {
