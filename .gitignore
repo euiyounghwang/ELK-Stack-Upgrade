@@ -1,0 +1,6 @@
+.venv/
+run/
+.env
+upgrade-script/__pycache__
+upgrade-script/output/
+upgrade-script/cert_files/
