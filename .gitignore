@@ -4,3 +4,4 @@ run/
 upgrade-script/__pycache__
 upgrade-script/output/
 upgrade-script/cert_files/
+ELK-config/commands/
