@@ -17,6 +17,7 @@ import logging
 import warnings
 from multiprocessing import Process
 import time
+from datetime import timedelta
 import calendar
 
 warnings.filterwarnings("ignore")
@@ -34,6 +35,8 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
     '''
 
     global alias_dict
+    global response_total_time, response_request_cnt
+
     StartTime = datetime.now()
    
 
@@ -142,12 +145,13 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
             logging.error(e)
             # pass
         
-        time.sleep(1)
+        # time.sleep(1)
 
     ''' remain bulk'''
     if len(es_obj_t.actions) > 0:
+        ''' calcuate repsonse time '''
+        Bulk_StartTime = datetime.now()
         response = es_obj_t.es_client.bulk(body=es_obj_t.actions)
-                
         if str(response['errors']).lower() == 'true':
             # logging.error(response)
             pass
@@ -155,6 +159,12 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
             logging.info("** remain indexing ** : {}".format(len(response['items'])))
             del es_obj_t.actions[:]
     
+        Bulk_EndTime = datetime.now()
+        ''' accumulate response_total_time'''
+        response_total_time += float(str((Bulk_EndTime - Bulk_StartTime).seconds) + '.' + str((Bulk_EndTime - Bulk_StartTime).microseconds).zfill(6)[:2])
+        response_request_cnt +=1
+        logging.info(f"response_total_time :{response_total_time}, response_request_cnt = {response_request_cnt}")
+
     '''
     curl -XPOST -u elastic:gsaadmin "http://localhost:9221/cp_test_omnisearch_v2/_search/?pretty" -H 'Content-Type: application/json' -d' {
         "track_total_hits" : true,
@@ -182,18 +192,19 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
     logging.info('-'*10)
     print(type(rs["hits"]["total"]), str(rs["hits"]["total"]))
     if isinstance(rs["hits"]["total"], int):
-        logging.info(f'Validation Search Size : {rs["hits"]["total"]}')
+        logging.info(f'Validation Search Size : {rs["hits"]["total"]:,}')
     else:
-        logging.info(f'Validation Search Size : {rs["hits"]["total"]["value"]}')
+        logging.info(f'Validation Search Size : {rs["hits"]["total"]["value"]:,}')
     logging.info('-'*10)
 
-    
     EndTime = datetime.now()
     Delay_Time = str((EndTime - StartTime).seconds) + '.' + str((EndTime - StartTime).microseconds).zfill(6)[:2]
 
-    from datetime import timedelta
     logging.info('Configuration : {}, threading id : {}'.format(_crawl_type, threading.get_native_id()))
-    logging.info('Running Time : {} Seconds, {} Minutes'.format(Delay_Time, str(timedelta(seconds=(EndTime - StartTime).seconds))))
+    logging.info('Running Time for thread: {} Seconds, {} Minutes'.format(Delay_Time, str(timedelta(seconds=(EndTime - StartTime).seconds))))
+
+    response_total_time += es_obj_t.response_total_time
+    response_request_cnt += es_obj_t.response_request_cnt
 
 
 
@@ -211,7 +222,10 @@ if __name__ == "__main__":
     # parser.add_argument('-d', '--target_index', dest='target_index', default="test", help='target_index')
     args = parser.parse_args()
 
+    StartTime_Job = datetime.now()
+
     alias_dict = {}
+    total_count, response_total_time, response_request_cnt = 0, 0, 0
     
     if args.es:
         es_source_host = args.es
@@ -231,8 +245,8 @@ if __name__ == "__main__":
     else:
         es_target_index = args.source_index
     '''
-    # es_target_index = es_source_index
-    es_target_index = 'test_reindex_script_{}'.format(es_source_index)
+    es_target_index = es_source_index
+    # es_target_index = 'test_reindex_script_{}'.format(es_source_index)
   
     # --
     # Only One process we can use due to 'Global Interpreter Lock'
@@ -246,6 +260,10 @@ if __name__ == "__main__":
     thread_lists = []
 
     def generated_statis_threads():
+        ''' search with number of shards'''
+        
+        global total_count
+
         ''' create threads as many as shards'''
         # search_shards = 1
 
@@ -258,6 +276,12 @@ if __name__ == "__main__":
                 "match_all" : {}
             }
         }
+
+        es_cnt = Search(host=es_source_host)
+        es_client = es_cnt.get_es_instance()
+
+        rs = es_client.search(index=[es_source_index],body=query)
+        total_count = int(rs["hits"]["total"])
 
         try:
             ''' create one threads and run one process for all data per index'''
@@ -344,7 +368,7 @@ if __name__ == "__main__":
             if len(total_buckets_list) < 1:
                 logging.info(f"is_automate_create_threads to 1 process [{len(total_buckets_list)}]")
                 logging.info(f"Call to generated_statis_threads()")
-                # generated_statis_threads()
+                generated_statis_threads()
 
             else:
                 logging.info(f"is_automate_create_threads to multiple process [{len(total_buckets_list)}]")
@@ -373,7 +397,7 @@ if __name__ == "__main__":
                             }
                         }
                     }
-                    th = Thread(target=work, args=(es_source_host, es_target_host, es_source_index, es_target_index, index_type, None, query, "{}/{} threads..".format(is_aggs_mode, len(date_range))))
+                    th = Thread(target=work, args=(es_source_host, es_target_host, es_source_index, es_target_index, index_type, None, query, "{}/{} threads..".format(is_aggs_mode, 'ADDTS_not_exist')))
                     th.start()
                     thread_lists.append(th)
                     # logging.info(query)
@@ -444,7 +468,8 @@ if __name__ == "__main__":
 
         except Exception as e:
             logging.error(e)
-            pass
+            logging.info(f"Call to generated_statis_threads()")
+            generated_statis_threads()
     
     else:
         logging.info(f"Call to generated_statis_threads()")
@@ -455,14 +480,41 @@ if __name__ == "__main__":
     es_t_client = es_script.get_es_instance()
 
     ''' finally'''
-    ''' update settings for the number of replica to 1, refresh_interval to null/'''
-    es_t_client.indices.put_settings(index=es_target_index, body= {
-        "refresh_interval" : None,
-        "number_of_replicas": 1
-    })
+    if es_t_client.indices.exists(es_target_index):
+        ''' update settings for the number of replica to 1, refresh_interval to null/'''
+        es_t_client.indices.put_settings(index=es_target_index, body= {
+            "refresh_interval" : None,
+            "number_of_replicas": 1
+        })
 
-    ''' set alias to target es cluster'''
-    es_t_client.indices.put_alias(es_target_index, alias_dict.get(es_source_index))
+        ''' set alias to target es cluster'''
+        if es_target_index in alias_dict.keys():
+            es_t_client.indices.put_alias(es_target_index, alias_dict.get(es_source_index))
 
+    EndTime_Job = datetime.now()
+    Delay_Time = str((EndTime_Job - StartTime_Job).seconds) + '.' + str((EndTime_Job - StartTime_Job).microseconds).zfill(6)[:2]
+
+    '''' --------------------------'''
+    ''' performance metrics'''
+    logging.info("\n")
+    logging.info("---")
+    logging.info("Performance Metrics")
+    logging.info('*Running Time for main job: {} Seconds, {} Minutes'.format(Delay_Time, str(timedelta(seconds=(EndTime_Job - StartTime_Job).seconds))))
+    logging.info('*Response Time : {}, Request : {}'.format(response_total_time, response_request_cnt))
+    ''' This script privides to calculate throughput by dividing the total number of docs reindexed by time, or The total number of docs indexes divided by 1 second. '''
+    ''' throughput calcuate : https://blog.naver.com/PostView.nhn?blogId=indy9052&logNo=220948106201'''
+
+    ''' running time on main job '''    
+    runnig_time = total_count/(EndTime_Job - StartTime_Job).seconds if (EndTime_Job - StartTime_Job).seconds > 0 else total_count
+    ''' Throughput is a measure of how many units of information a system can process in a given amount of time. '''
+    logging.info(f'**Total Count: {total_count:,}, Throughput rate : {str(round(float(runnig_time),2))}/s')
     
+    ''' response_total_time <- Seconds'''
+    avg_response_time = round(float(response_total_time/response_request_cnt), 4)
+    logging.info('*Average response time : {}/s'.format(avg_response_time))
+    # avg_response_time_ms = "{}/ms".format(str(round(avg_response_time*1000.0, 3))) if avg_response_time < 1 else "{}/ms".format(str(round(avg_response_time, 3)))
+    # logging.info('*Average response time : {}/s, *Average response time : {}'.format(avg_response_time))
+    logging.info("---")
+    logging.info("\n")
+    '''' --------------------------'''
   

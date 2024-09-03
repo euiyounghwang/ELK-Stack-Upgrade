@@ -24,6 +24,8 @@ class Search():
         self.max_len = 0
         self.total_count = 0
         self.total_buffer = 0
+        self.response_total_time = 0
+        self.response_request_cnt = 0
         self.actions = []
         
         # self.es_client = Elasticsearch(hosts=host, headers=self.get_headers(), timeout=self.timeout)
@@ -179,7 +181,8 @@ class Search():
                 
                 ''' When indexing with ES v.8, _type is deleted and must be excluded. '''
                 ''' So, when indexing with ES v.8, spark job also needs to remove the _type field.'''
-                _header = {'index': {'_index': _index, "_id" : each_raw['_id'], "op_type" : "create"}}
+                _header = {'index': {'_index': _index, "_id" : each_raw['_id']}}
+                # _header = {'index': {'_index': _index, "_id" : each_raw['_id'], "op_type" : "create"}}
                 # self.actions.append({'index': {'_index': _index, "_id" : each_raw['_id'], "op_type" : "create"}})
                 
                 self.actions.append(_header)
@@ -202,12 +205,20 @@ class Search():
                 # if self.Get_Buffer_Length(self.actions) > self.MAX_BYTES:
                 # if self.total_buffer > self.MAX_BYTES:
                 if self.total_count % 1000 == 0:
+                    Bulk_StartTime = datetime.now()
+                    
                     response = self.es_client.bulk(body=self.actions)
                     if str(response['errors']).lower() == 'true':
                         # logging.error(response)
                         pass
                     else:
                         logging.info("** indexing ** : {}".format(len(response['items'])))
+
+                    Bulk_EndTime = datetime.now()
+                    ''' accumulate response_total_time'''
+                    self.response_total_time += float(str((Bulk_EndTime - Bulk_StartTime).seconds) + '.' + str((Bulk_EndTime - Bulk_StartTime).microseconds).zfill(6)[:2])
+                    self.response_request_cnt += 1
+                    logging.info(f"response_total_time :{self.response_total_time}, response_request_cnt = {self.response_request_cnt}")
                     
                     ''' initialize variables'''
                     ''' ----------------------'''
