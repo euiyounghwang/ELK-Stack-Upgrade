@@ -6,3 +6,4 @@ upgrade-script/output/
 upgrade-script/cert_files/
 ELK-config/commands/
 devops/output/
+__pycache__/
