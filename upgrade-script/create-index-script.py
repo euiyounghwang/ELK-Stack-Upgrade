@@ -31,7 +31,7 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type):
     In Python, a similar routine could be developed:
     '''
 
-    def get_es_api_alias(source_es_client):
+    def get_es_api_alias(es_client):
         ''' get all alias and set to dict'''
         ''' https://localhost:9201/_cat/aliases?format=json '''
         get_alias_old_cluster = es_client.indices.get_alias()
@@ -49,18 +49,17 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type):
         return reset_alias_dict
     
 
-    def try_delete_create_index(es_client, index, mapping):
+    def try_delete_create_index(es_t_client, index, mapping):
         try:
             # logging.info(mapping)
-            '''
-            if es_client.indices.exists(index):
-                logging.info('Successfully deleted: {}'.format(index))
-                es_client.indices.delete(index)
-            '''
+            if es_t_client.indices.exists(index):
+                logging.info('Alreday exists : {}'.format(index))
+                # es_t_client.indices.delete(index)
+
             # now create a new index
-            es_client.indices.create(index=index, body=mapping)
+            es_t_client.indices.create(index=index, body=mapping)
             # es_client.indices.put_alias(index, "omnisearch_search")
-            es_client.indices.refresh(index=index)
+            es_t_client.indices.refresh(index=index)
             logging.info("Successfully created: {}".format(index))
             
         except Exception as e:
@@ -78,46 +77,66 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type):
     es_obj_s = Search(host=es_source_client)
     es_client = es_obj_s.get_es_instance()
 
-    src_idx_mapping = es_client.indices.get_mapping(index=src_idx)
-
-    idx_json = {
-         "settings": {
-            "index": {
-                "number_of_shards": "5",
-                "number_of_replicas": "1"
-            }
-        },
-        "mappings" : {}
-    }
-    idx_json.update({"mappings" : src_idx_mapping.get(src_idx).get("mappings")})
-    # logging.info(json.dumps(idx_json, indent=2))
-
     es_obj_t = Search(host=es_target_client)
     es_t_client = es_obj_t.get_es_instance()
+
+    source_idx_lists = []
+    if src_idx == 'all':
+        ''' extact a list of indices from the source cluster'''
+        source_idx_lists = es_client.indices.get("*")
+        # logging.info(f"{source_idx_lists}")
+    else:
+         source_idx_lists = [src_idx]
+
+   
+    ''' get Alias'''
+    get_alias_dict = get_es_api_alias(es_client)
+    # print(get_alias_dict)
     
-    ''' Get the mappings with a specific index from source cluster and create index into new cluster as ts'''
-    try_delete_create_index(es_t_client, dest_idx, idx_json)
+    ''' create index with mappping from ES v.5 after transforming'''
+    for each_index in source_idx_lists:
+        ''' exclude system indices in the source cluster such as .monitoring-es-7-2024.07.12'''
+        if '.' not in each_index:
+           if str(each_index).startswith("om") or str(each_index).startswith("wx") or str(each_index).startswith("es") or str(each_index).startswith("archive"):
+                print(f'each_index - {each_index}')
+                src_idx_mapping = es_client.indices.get_mapping(index=each_index)
 
-    ''' Set Alias'''
-    # get_alias_dict = get_es_api_alias(es_client)
-    # # print(dest_idx, ''.join(get_alias_dict.get(dest_idx)))
-    # response = es_t_client.indices.put_alias(dest_idx, ''.join(get_alias_dict.get(dest_idx)))
-    # if response:
-    #     logging.info(f"Success with indics : {dest_idx}, alias : {''.join(get_alias_dict.get(dest_idx))}")
+                idx_json = {
+                    "settings": {
+                        "index": {
+                            "number_of_shards": "5",
+                            "number_of_replicas": "1"
+                        }
+                    },
+                    "mappings" : {}
+                }
+                idx_json.update({"mappings" : src_idx_mapping.get(each_index).get("mappings")})
+                # logging.info(json.dumps(idx_json, indent=2))
 
+                ''' Get the mappings with a specific index from source cluster and create index into new cluster as ts'''
+                try_delete_create_index(es_t_client, each_index, idx_json)
+
+                ''' update aliase'''
+                print(each_index, get_alias_dict.get(each_index))
+                ''' if aliase exists in source es client'''
+                if get_alias_dict.get(each_index):
+                    response = es_t_client.indices.put_alias(each_index, ''.join(get_alias_dict.get(each_index)))
+                    if response:
+                        logging.info(f"Success with indics : {each_index}, alias : {''.join(get_alias_dict.get(each_index))}")
     
 
 
 if __name__ == "__main__":
     
     '''
-    create index with alias from source cluster to target cluster. we only use a specific index for this script
+    create index with alias from source cluster to target cluster. we only use a specific index for this script (For ES v.5)
+    (.venv, migrate all indexes) ➜  python ./upgrade-script/create-index-script.py --es http://dev:9200 --ts http://dev:9200
     (.venv) ➜  python ./upgrade-script/create-index-script.py --es http://dev:9200 --source_index wx_order_02072022_22_2_1 --ts http://dev:9200
 
     '''
     parser = argparse.ArgumentParser(description="Index into Elasticsearch using this script")
     parser.add_argument('-e', '--es', dest='es', default="http://localhost:9200", help='host source')
-    parser.add_argument('-s', '--source_index', dest='source_index', default="cp_recommendation_test", help='source_index')
+    parser.add_argument('-s', '--source_index', dest='source_index', default="all", help='source_index')
     parser.add_argument('-y', '--type', dest='type', default="_doc", help='_type')
     parser.add_argument('-t', '--ts', dest='ts', default="http://localhost:9201", help='host target')
     args = parser.parse_args()
@@ -140,8 +159,8 @@ if __name__ == "__main__":
     else:
         es_target_index = args.source_index
     '''
-    # es_target_index = es_source_index
-    es_target_index = 'test_reindex_script_{}'.format(es_source_index)
+    es_target_index = es_source_index
+    # es_target_index = 'test_reindex_script_{}'.format(es_source_index)
         
     # --
     # Only One process we can use due to 'Global Interpreter Lock'
