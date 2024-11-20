@@ -105,8 +105,7 @@ start() {
     cd $ES_HOME
     echo -n $"Starting $prog: "
     # if not running, start it up here, usually something like "daemon $exec"
-    #daemon --user elasticsearch --pidfile $pidfile $exec -p $pidfile -d
-    sudo -u elasticsearch $ES_HOME/bin/elasticsearch -p $pidfile -d
+    daemon --user elasticsearch --pidfile $pidfile $exec -p $pidfile -d
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
@@ -114,16 +113,13 @@ start() {
 }
 
 stop() {
-    echo "stopping.."
-    echo "stopping..${pidfile}"
     if [ -e ${pidfile} ] ; then
        kill `cat ${pidfile}`
     fi
 
     echo -n $"Stopping $prog: "
     # stop it here, often "killproc $prog"
-    #killproc -p $pidfile -d ${stopping.timeout} $prog
-    #killproc -p $pidfile -d
+    killproc -p $pidfile -d ${stopping.timeout} $prog
     retval=$?
     echo
     [ $retval -eq 0 ] && rm -f $lockfile
@@ -145,18 +141,7 @@ force_reload() {
 
 rh_status() {
     # run checks to determine if the service is running or use generic status
-    #ps -ef | grep elasticsearch
-    
-    pid=`ps ax | grep -i '/elasticsearch.pid' | grep -v grep | awk '{print $1}'`
-
-    if [ -n "$pid" ]
-        then
-        # kill -9 $pid
-        echo "elasticsearch service is Running as PID: $pid"
-    else
-        echo "elasticsearch was not Running"
-    fi
-    #status -p $pidfile $prog
+    status -p $pidfile $prog
 }
 
 rh_status_q() {
@@ -166,7 +151,7 @@ rh_status_q() {
 
 case "$1" in
     start)
-        #rh_status_q && exit 0
+        rh_status_q && exit 0
         $1
         ;;
     stop)
