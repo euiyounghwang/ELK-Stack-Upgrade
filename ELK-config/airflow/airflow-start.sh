@@ -9,6 +9,7 @@ JAVA_HOME=~/openlogic-openjdk-11.0.23+9-linux-x64
 export PATH=$JAVA_HOME/bin:$PATH
 export JAVA_HOME
 
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 VENV=".venv"
 # Python 3.11.7 with Window
