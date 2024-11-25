@@ -16,6 +16,7 @@ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 $ source /etc/environment
 airfow info
 
+airflow users list 
 
 python3.9 -m pip install apache-airflow==2.2.3
 export AIRFLOW_HOME=/home/devuser/monitoring/apache_airflow
