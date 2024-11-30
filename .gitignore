@@ -7,3 +7,5 @@ upgrade-script/cert_files/
 ELK-config/commands/
 devops/output/
 __pycache__/
+.DS_Store
+ELK-config/.DS_Store
