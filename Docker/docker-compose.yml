@@ -74,38 +74,44 @@ services:
     networks:
       - bridge
 
-  elasticsearch8:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.0.0-SNAPSHOT
-    container_name: elasticsearch
+  fn-es8:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: fn-es8
     environment:
-      - network.host=0.0.0.0
-      - discovery.type=single-node
-      - cluster.name=docker-cluster
-      - node.name=cluster1-node1
-      - xpack.license.self_generated.type=basic
+      - http.host=0.0.0.0
+      - node.name=fn-dm-bees-omni-data-01
+      - node.roles=[data, master]
+      - cluster.name=docker-elasticsearch
+      - cluster.initial_master_nodes=fn-dm-bees-omni-data-01
+      - discovery.seed_hosts=fn-dm-bees-omni-data-01
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=basic
+      - action.destructive_requires_name=false
+      - http.port=9202
     ulimits:
       memlock:
         soft: -1
         hard: -1
     ports:
-      - 9200:9200
+      - 9202:9202
     networks:
       - bridge
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.0.0-SNAPSHOT
-    container_name: kibana
+  fn-kibana8:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: fn-kibana8
     environment:
-     ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+     ELASTICSEARCH_HOSTS: http://fn-es8:9202
      SERVER_HOSTS: 0.0.0.0
     ports:
-      - "5601:5601"
+      - 25601:5601
     networks:
       - bridge    
     depends_on:
-      - elasticsearch8
+      - fn-es8
 
   fn-es:
     image: fn-es:omni_es
