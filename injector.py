@@ -16,9 +16,9 @@ load_dotenv()
 # Initialize & Inject with only one instance
 logger = create_log()
 
-from ssl import create_default_context
+# from ssl import create_default_context
 # context = create_default_context(cafile=r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-upgrade\root-ca.pem')
-context = create_default_context(cafile=r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-upgrade\kirk.pem')
+# context = create_default_context(cafile=r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-upgrade\kirk.pem')
 
 """
 If using SSL, there are several parameters that control how we deal with
