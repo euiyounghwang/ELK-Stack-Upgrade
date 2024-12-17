@@ -9,3 +9,5 @@ devops/output/
 __pycache__/
 .DS_Store
 ELK-config/.DS_Store
+logs/
+rest_api/.venv/
