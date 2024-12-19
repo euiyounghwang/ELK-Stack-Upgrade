@@ -46,7 +46,7 @@ def work(es_source_client, es_target_client):
             ''' call to making_script'''
             for each_dict in results:
                 for k, v in each_dict.items():
-                    f.write(f"{k}\t{source_host}\t{v.get('source_docs')}\t{target_host}\t{v.get('target_docs')}" + '\n')
+                    f.write(f"{k}\t{source_host}\t{v.get('source_docs')}\t{target_host}\t{v.get('target_docs')}\t{v.get('count')}" + '\n')
             
 
     def try_exists_index(es_client, index):
@@ -73,15 +73,15 @@ def work(es_source_client, es_target_client):
     es_t_client = es_obj_t.get_es_instance()
 
     ''' compare all records with match_all '''
-    '''
     query = {
         # "_source": False,
 	    'query': {
     	    'match_all': {}
         }
     }
-    '''
+
     ''' compare all records with this condition '''
+    '''
     query = {
         "query": {
             "bool": {
@@ -108,13 +108,15 @@ def work(es_source_client, es_target_client):
             }
         }
     }
-
+    '''
     
 
     ''' extact a list of indices from the source cluster'''
     source_idx_lists = es_client.indices.get("*")
     # logging.info(source_idx_lists)
     is_not_exist_lists, different_doc = [], []
+    all_docs_df = {}
+    source_cluter, target_cluter, index_column, index_value, source_cnt, target_cnt = [], [], [], [], [], []
     for each_index in source_idx_lists:
         ''' exclude system indices in the source cluster such as .monitoring-es-7-2024.07.12'''
         if '.' not in each_index:
@@ -127,14 +129,35 @@ def work(es_source_client, es_target_client):
             if is_exist:
                 res_count_target = es_t_client.count(index=each_index, body=query)["count"]
             
-            if res_count_source != res_count_target:
+            index_column.append(each_index)
+
+            if res_count_source > res_count_target:
                 different_doc.append({
                                         each_index : {
                                             "source_docs" : "%s" % res_count_source,
                                             "target_docs" : "%s" % res_count_target,
+                                             "count" : "Differ"
                                             }
                                     }
                                 )
+                index_value.append(False)
+            else:
+                different_doc.append({
+                                        each_index : {
+                                            "source_docs" : "%s" % res_count_source,
+                                            "target_docs" : "%s" % res_count_target,
+                                             "count" : "Same"
+                                            }
+                                    }
+                            )
+                index_value.append(True)
+
+            ''' es cluster '''
+            source_cluter.append(es_client)
+            target_cluter.append(es_t_client)
+            ''' index cnt '''
+            source_cnt.append(res_count_source)
+            target_cnt.append(res_count_target)
 
             # print(res)
             if not is_exist:
@@ -145,6 +168,19 @@ def work(es_source_client, es_target_client):
     if len(is_not_exist_lists) > 0:
         print(f"Not exist lists : {json.dumps(is_not_exist_lists, indent=2)}")
     print(f"Validate the number of docs : {json.dumps(different_doc, indent=2)}")
+
+    ''' *** df ***'''
+    all_docs_df.update({"Index_Name" : index_column})
+    all_docs_df.update({"source_cluster" : str(source_cluter)})
+    all_docs_df.update({"Source Count" : source_cnt})
+    all_docs_df.update({"target_cluster" : str(target_cluter)})
+    all_docs_df.update({"Target Count" : target_cnt})
+    all_docs_df.update({"Reindex Completed" : index_value})
+
+    df = pd.DataFrame.from_dict(all_docs_df)
+    print(df.head(10))
+    ''' *** df ***'''
+
     
     ''' clear output file'''
     output_clear()
