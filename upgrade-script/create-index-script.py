@@ -55,7 +55,7 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type):
             if es_t_client.indices.exists(index):
                 logging.info('Alreday exists : {}'.format(index))
                 # es_t_client.indices.delete(index)
-
+                
             # now create a new index
             es_t_client.indices.create(index=index, body=mapping)
             # es_client.indices.put_alias(index, "omnisearch_search")
