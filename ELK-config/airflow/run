@@ -29,3 +29,6 @@ airflow db init
 
 airflow webserver -p 8080 -D
 airflow scheduler -D
+
+#** airflow
+00 00 * * * sudo find /home/biadmin/airflow/logs/scheduler -type d -mtime +0 -exec rm -rf {} \;
