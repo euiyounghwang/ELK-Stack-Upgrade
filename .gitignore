@@ -11,3 +11,4 @@ __pycache__/
 ELK-config/.DS_Store
 logs/
 rest_api/.venv/
+jupyter-workflow/.ipynb_checkpoints/*
