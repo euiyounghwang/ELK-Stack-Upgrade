@@ -34,6 +34,13 @@ def work(es_target_client):
     def import_file(file):
         ''' transform to json format for the host'''
         '''
+        test_user|test==|_cluster/health?format=json
+        test_user|test==|_cat/indices?format=json
+        test_user|test==|_cat/aliases?format=json
+        test_user|test==|_cat/nodes?format=json
+        test_user|test==|test_10052020_20_5_1/_search
+        test_user|test==|logstash-2024.08.21/_search
+
         2024-08-22 11:51:42,978 : INFO : sg_info_dicts - {
             "test_user": {
                 "header": "test",
@@ -153,6 +160,13 @@ def work(es_target_client):
     ''' clear output file'''
     # output_clear()
 
+    '''
+    es_admin|test==|_cluster/health?format=json
+    es_admin|test==|_cat/indices?format=json
+    es_admin|test==|_cat/aliases?format=json
+    es_admin|test==|_cat/nodes?format=json
+    es_admin|test==|logstash-2024.08.21/_search
+    '''
     sg_info_dict = import_file("./sg-user")
 
     ''' Validate permission to ES with X-pack based on SG'''
@@ -179,7 +193,9 @@ def work(es_target_client):
 if __name__ == "__main__":
     
     '''
-    (.venv) ➜  python ./upgrade-script/sgconfig-validation-script.py --ts https://target_es_cluster:9201
+    (.venv) ➜  python ./upgrade-script/sg-role-validation-script.py --ts https://target_es_cluster:9201
+    The port 9200 is for http clients and port 9300 is for tcp clients. In 5.x we use both. 
+    Once we are ready for 8.x we need to move the Cliy teams to 9200 as the 9300 port is no longer supported.
     '''
     parser = argparse.ArgumentParser(description="Index into Elasticsearch using this script")
     parser.add_argument('-t', '--ts', dest='ts', default="https://localhost:9201", help='host target')
