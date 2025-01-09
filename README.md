@@ -60,7 +60,7 @@ GET test/search
 
 #### Python V3.9 Install
 ```bash
-sudo yum install gcc openssl-devel bzip2-devel libffi-devel zlib-devel git 
+sudo yum install gcc sqlite-devel openssl-devel bzip2-devel libffi-devel zlib-devel git 
 wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tgz 
 tar –zxvf Python-3.9.0.tgz or tar -xvf Python-3.9.0.tgz 
 cd Python-3.9.0 
@@ -77,12 +77,20 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # pip install -r ./dev-requirement.txt
+# -- Swagger
 pip install poetry
-pip install requests
-pip install pytz
-pip install httpx
-pip install python-dotenv
-pip install pandas
+poetry add fastapi
+poetry add uvicorn
+poetry add gunicorn
+poetry add pytz
+poetry add httpx
+poetry add pytest
+poetry add pytest-cov
+poetry add requests
+poetry add pyyaml
+poetry add elasticsearch==7.13
+poetry add python-dotenv
+poetry add jupyter
 
 # when error occur like this
 # ImportError: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'OpenSSL 1.0.2k-fips  26 Jan 2017'. See: https://github.com/urllib3/urllib3/issues/2168
@@ -132,6 +140,11 @@ POST _flush/synced
 2) Stop all nodes
 
 3) Install the Search Guard plugin on all nodes
+- Add user
+```bash
+sudo groupadd elasticsearch
+sudo useradd -g elasticsearch elasticsearch
+```
 - If you install ES at the first time, 
 ```bash
 sudo sysctl -w vm.max_map_count=262144
@@ -232,6 +245,56 @@ Elasticsearch lib dir: /apps/elasticsearch/node1/elasticsearch-8.12.2/lib
 ..
 -rw-rw-r--  1 localhost localhost  1444 Jun 21 15:52 root-ca.pem
 
+'''https://search-guard.com/blog/elasticsearch-tls-certificates-openssl/ '''
+
+SearchGuard distinguishes three different certificate types:
+Node certificates
+- used to identify and secure traffic between Elasticsearch nodes on the transport layer
+Client certificates
+- used to identify Elasticsearch clients on the REST and transport layer.
+Admin certificates
+- which basically are client certificates that have elevated rights to perform administrative tasks.
+
+- Root CA (Certificate Authority) is a certificate that will be used to sign all other certificates within a system. In other words, Root CA is an issuer of node, client and admin certificates
+- Next, we generate node certificate issued by the Root CA. We start with a similar config file (country and organisational unit fields may be copied) which additionally contains:
+
+
+-- Certificate Decoder
+openssl x509 -enddate -noout -in ./root-ca.pem
+openssl x509 -in ./root-ca.pem -text -noout
+openssl x509 -in ./root-ca.pem -subject -noout
+openssl x509 -in ./esnode.pem -subject -noout
+openssl x509 -in esnode.pem -issuer -noout
+openssl x509 -in ./esnode-key.pem -subject -noout
+openssl rsa -noout -text -in ./esnode-key.pem
+- https://search-guard.com/blog/elasticsearch-tls-certificates-openssl/
+
+# ------------------------------------------------------------------------
+# The TLS Tool has created the following files:
+# root-ca.pem - the root certificate
+# root-ca-key.pem - the private key for the root certificate
+# node.pem - the node certificate
+# node-key.pem - the private key for the node certificate
+# admin.pem - the admin certificate
+# admin-key.pem - the private key for the admin certificate
+
+C = Country Name
+ST = State or Province Name
+L = Locality Name (보통 도시 이름)
+O = Organization Name
+OU = Organizational Unit Name
+CN = Common Name (FQDN - Fully Qualified Domain Name)
+emailAddress = 이메일 주소
+
+
+-bash-4.2$ openssl x509 -in esnode.pem -issuer -noout
+
+# openssl req -x509 -newkey rsa:4096 -keyout ca-key.pem -out root-ca.pem -days 3650 -nodes -config ./cert_config
+# openssl req -newkey rsa:4096 -keyout esnode-key.pem -out esnode.pem -days 3650 -nodes -config ./node_config
+# openssl x509 -req -in esnode.pem -CA ./root-ca.pem -CAkey ca-key.pem -CAcreateserial -out esnode.pem -extensions req_ext -extfile ./node_config -days 3650
+
+# openssl x509 -in test-esnode.pem -issuer -noout
+# openssl x509 -enddate -noout -in ./test-esnode.pem
 
 - elasticsearch.yml
 
@@ -288,6 +351,26 @@ indices.query.bool.max_clause_count: 50000
 reindex.remote.whitelist: "*:9200"
 
 
+
+# **************************************************
+# **************************************************
+# Generate key via Search Guard
+# ''' https://subin-0320.tistory.com/174 '''
+
+# ------------------------------------------------------------------------
+
+# -- Keytool for SSL Keys
+# ''' https://blog.naver.com/PostView.naver?blogId=noggame&logNo=222117193132&parentCategoryNo=&categoryNo=33 '''
+sudo keytool -genkeypair -keystore /apps/spark/certs/spark.jks  -storetype pkcs12 -keyalg RSA -keysize 4096 -alias selfsigned  -dname "CN=spark-cert, L=test, S=test, C=test"  -storepass test -keypass test -validity 2000
+keytool -list -v -keystore sparktrust.jks
+keytool -delete -keystore sparktrust.jks
+
+sudo keytool -exportcert -alias selfsigned -file spark-cert.p12 -keystore ./spark.jks
+sudo keytool -importcert -trustcacerts -alias sparktrust  -file spark-cert.p12 -keystore sparktrust.jks  -keypass sparkpass  -noprompt
+# ------------------------------------------------------------------------
+
+
+# -- Generate ca-cert and node-cert files
 # ------------------------------------------------------------------------
 # The TLS Tool has created the following files:
 # root-ca.pem - the root certificate
@@ -297,14 +380,82 @@ reindex.remote.whitelist: "*:9200"
 # admin.pem - the admin certificate
 # admin-key.pem - the private key for the admin certificate
 
-```
+''' https://subin-0320.tistory.com/174'''
+''' https://docs.search-guard.com/7.x-53/offline-tls-tool#validating-certificates '''
 
-5) Restart Elasticsearch and check that the nodes come up
+- Search Guard provide an offline TLS tool which you can use to generate all required certificates for running Search Guard in production:
+- Just download the zip or tar.gz file and unpack it in a directory of your choice
+- The TLS tool will read the node- and certificate configuration settings from a yaml file, and outputs the generated files in a configurable directory.
+
+- Root CA (Certificate Authority) is a certificate that will be used to sign all other certificates within a system. In other words, Root CA is an issuer of node, client and admin certificates
+- Next, we generate node certificate issued by the Root CA. We start with a similar config file (country and organisational unit fields may be copied) which additionally contains:
+
+- you can create the Root and intermediate CA first, and generate node certificates as you need them.
+- To configure the Root CA for all certificates, add the following lines to your configuration file:
+- To generate node certificates, add the node name, the Distinguished Name, the hostname(s) and/or the IP address(es) in the nodes section:
+
+unzip ./Search-Guard/gen_certs/search-guard-tlstool-3.0.2.zip
+
+# -- Generate ca-cert and node-cert files
+./tools/sgtlstool.sh -c ./tlsconfig.yml -ca -crt -t ./certs
+
+./tools/sgtlsdiag.sh -ca ./certs/root-ca.pem -crt ./certs/dev-node-1.pem
+
+openssl x509 -in ./root-ca.pem -text -noout
+openssl x509 -in ./root-ca.pem -subject -noout
+openssl x509 -in ./dev_certs/root-ca.pem -noout -dates
+openssl x509 -enddate -noout -in ./dev_certs/root-ca.pem
+
+
+searchguard.enterprise_modules_enabled: false
+## SSL/TLS
+searchguard.ssl.transport.pemcert_filepath: certs/node-1.pem
+searchguard.ssl.transport.pemkey_filepath: certs/node-1.key
+searchguard.ssl.transport.pemkey_password: monitoring
+searchguard.ssl.transport.pemtrustedcas_filepath: certs/root-ca.pem
+searchguard.ssl.transport.enforce_hostname_verification: false
+searchguard.ssl.transport.resolve_hostname: false
+searchguard.ssl.http.enabled: true
+searchguard.ssl.http.pemcert_filepath: certs/node-1.pem
+searchguard.ssl.http.pemkey_filepath: certs/node-1.key
+searchguard.ssl.http.pemkey_password: monitoring
+searchguard.ssl.http.pemtrustedcas_filepath: certs/root-ca.pem
+searchguard.allow_unsafe_democertificates: true
+searchguard.allow_default_init_sgindex: true
+searchguard.nodes_dn:
+- "CN=node-1,OU=monitoring,O=monitoring"
+- "CN=node-2,OU=monitoring,O=monitoring"
+- "CN=node-3,OU=monitoring,O=monitoring"
+searchguard.authcz.admin_dn:
+- "CN=admin,OU=monitoring,O=monitoring"
+
+# **************************************************
+# **************************************************
+
+
+
+5) Start/Restart Elasticsearch and check that the nodes come up
 - Test connection : https://localhost:9201
+- Linux init.d (https://www.digipine.com/index.php?mid=programming&document_srl=1044&listStyle=viewer&page=1)
+- /etc/init.d/elasticsearch -- startup script for Elasticsearch
+- Once you have the file you can run the command. This will "install" elasticsearch as a service.
+```bash
+sudo chmod +x /etc/init.d/elasticsearch
+sudo systemctl enable elasticsearch.service
+sudo update-rc.d elasticsearch defaults
+sudo update-rc.d elasticsearch defaults 95 10
+sudo updated-rc.d -f elasticsearch remove
+```
+- To start and stop the service, you can run the commands :
+```bash
+sudo  service elasticsearch start
+sudo  service elasticsearch stop
+```
 - Run : `/apps/elasticsearch/elasticsearch-8.12.2/bin/elasticsearch -d`
 - Download sgctl tool script (https://maven.search-guard.com/search-guard-flx-release/com/floragunn/sgctl/)
 ```bash
 - https://docs.search-guard.com/latest/manual-installation
+- Search Guard guide with Role : https://forum.search-guard.com/t/sgs-kibana-user-allow-to-delete-index-patterns/2182, https://docs.search-guard.com/latest/action-groups
 $ ./sgctl.sh
 Usage: sgctl [COMMAND]
 Remote control tool for Search Guard
@@ -349,29 +500,29 @@ elasticsearch.yml.example  sg_action_groups.yml  sg_authc.yml  sg_authz.yml  sg_
 # Add User: 
 - if you already have a running cluster, you can also sgctl to directly create users on the cluster without modifying a local sg_internal_users.yml file first.
 
-# monitoring-account for admini permission
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local monitoring --backend-roles admin --password monitoring1234# -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
-
-
-# add for wx-index
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local wxuser --backend-roles sg_wxreadall --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
-
-
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local jdoe --backend-roles admin --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
-
-
-[biadmin@localhost ~]$ 
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local user1 --backend-roles admin --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
-Appending to /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
-
-
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local user3 --backend-roles sg_guest,kibanauser --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
-Appending to /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
-
--- guest
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local guest --backend-roles sg_guest,readall,kibanauser --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
+# guest
+sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local guest --backend-roles sg_guest,kibanauser --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
 Appending to /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
+
+# Alwasy run whenever you add/update something to cluster
+/apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh update-config /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles_mapping.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_action_groups.yml
+
+#--
+# Update password
+logstash:
+  hash: "$2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
+  backend_roles:
+  - "logstash"
+  description: "Demo logstash user"
+
+sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local logstash --backend-roles logstash --password logstash1234 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
+
+/apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh update-config /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles_mapping.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_action_groups.yml
+#--
+
+
+sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh update-user logstash --password logstash1 --ca-cert /apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem --cert /apps/elasticsearch/elasticsearch-8.12.2/config/kirk.pem --key /apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem --host localhost --port 9201 --insecure
 
 # Delete User:  (It doesn't need to update configuation using sgctl tool script to ES cluster with Search Guard)
 [biadmin@localhost ~]$ 
@@ -387,7 +538,7 @@ Internal User user2 has been deleted
 
 1) Create a connectin for updating the configuration
 [biadmin@localhost ~]$
-/apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh connect --host localhost --port 9201 --ca-cert /apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem --cert /apps/elasticsearch/elasticsearch-8.12.2/config/kirk.pem --key /apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem --insecure
+sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh connect --host localhost --port 9201 --ca-cert /apps/elasticsearch/elasticsearch-8.12.2/config/root-ca.pem --cert /apps/elasticsearch/elasticsearch-8.12.2/config/kirk.pem --key /apps/elasticsearch/elasticsearch-8.12.2/config/kirk-key.pem --insecure
 --
 Successfully connected to cluster supplychain-logging-es8-dev (localhost) as user CN=kirk,OU=client,O=client,L=test,C=de
 --
@@ -398,6 +549,7 @@ Successfully connected to cluster supplychain-logging-es8-dev (localhost) as use
 
 /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh update-config /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
+# Update configuration
 /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh update-config /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles.yml /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_roles_mapping.yml
 --
 Successfully connected to cluster supplychain-logging-es8-dev (localhost) as user CN=kirk,OU=client,O=client,L=test,C=de
@@ -613,12 +765,13 @@ Plugin installation complete
 
 
 # is proxied through the Kibana server.
-elasticsearch.username: "elastic"
-elasticsearch.password: "gsaadmin"
+elasticsearch.username: "kibanaserver"
+elasticsearch.password: "kibanaserver"
 
 
 elasticsearch.ssl.verificationMode: none
 elasticsearch.requestHeadersWhitelist: ["Authorization", "sgtenant"]
+security.showInsecureClusterWarning: false
 
 # - LOGO (/apps/kibana/kibana-8.12.2/plugins/searchguard/public/assets)
 
@@ -628,7 +781,10 @@ elasticsearch.requestHeadersWhitelist: ["Authorization", "sgtenant"]
 COPY /apps/kibana/kibana-8.12.2/plugins/searchguard/public/assets/searchguard_logo.svg from /home/biadmin/ELK_UPGRADE/searchguard_logo.svg
 
 # Run
-nohup /apps/kibana/kibana-8.12.2/bin/kibana &> /dev/null &
+nohup sudo /apps/kibana/kibana-8.12.2/bin/kibana --allow-root &> /dev/null &
+
+sudo /apps/kibana/latest/bin/kibana &
+sudo netstat -nlp | grep :5601
 ```
 
 
@@ -637,6 +793,10 @@ nohup /apps/kibana/kibana-8.12.2/bin/kibana &> /dev/null &
 - Path for Service
 
 ```bash
+sudo groupadd logstash
+sudo useradd -g  logstash logstash
+
+sudo mv logstash /etc/init.d/
 [logstash@localhost system]$ systemctl status logstash.service
 ● logstash.service - LSB: logstash
    Loaded: loaded (/etc/rc.d/init.d/logstash; bad; vendor preset: disabled)
