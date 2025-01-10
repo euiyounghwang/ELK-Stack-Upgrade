@@ -429,6 +429,21 @@ searchguard.nodes_dn:
 searchguard.authcz.admin_dn:
 - "CN=admin,OU=monitoring,O=monitoring"
 
+searchguard.audit.type: internal_elasticsearch
+searchguard.check_snapshot_restore_write_privileges: true
+searchguard.restapi.roles_enabled: ["SGS_ALL_ACCESS"]
+cluster.routing.allocation.disk.threshold_enabled: false
+searchguard.enterprise_modules_enabled: false
+xpack.security.enabled: false
+xpack.security.autoconfiguration.enabled: false
+######## End Search Guard Demo Configuration ########
+
+#Max Clause count
+indices.query.bool.max_clause_count: 50000
+
+#reindex.remote.whitelist: "otherhost:9200, another:9200, 127.0.10.*:9200, localhost:*
+reindex.remote.whitelist: "*:9200"
+
 # **************************************************
 # **************************************************
 
@@ -500,8 +515,8 @@ elasticsearch.yml.example  sg_action_groups.yml  sg_authc.yml  sg_authz.yml  sg_
 # Add User: 
 - if you already have a running cluster, you can also sgctl to directly create users on the cluster without modifying a local sg_internal_users.yml file first.
 
-# guest
-sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local guest --backend-roles sg_guest,kibanauser --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
+# es_monitoring
+sudo /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/tools/sgctl-2.0.0.sh add-user-local es_monitoring --backend-roles sg_public,kibanauser --password 1 -o /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
 Appending to /apps/elasticsearch/elasticsearch-8.12.2/plugins/search-guard-flx/sgconfig/sg_internal_users.yml
 
