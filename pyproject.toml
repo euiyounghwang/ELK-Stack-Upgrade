@@ -19,6 +19,7 @@ colorlog = "^6.8.2"
 jupyter = "^1.1.1"
 jupyter-scheduler = "^2.10.0"
 pytest-cov = "^6.0.0"
+jupyterlab = "^4.3.4"
 
 
 [build-system]
