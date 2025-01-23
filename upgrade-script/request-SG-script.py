@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 ''' pip install python-dotenv'''
 load_dotenv() # will search for .env file in local folder and load variables 
 
-INDEX = "my-index-000001"
+INDEX = "wx_test"
 
 def elasticsearch_es():
     '''
@@ -40,7 +40,7 @@ def elasticsearch_es():
             'Authorization' : '{}'.format(os.getenv('BASIC_AUTH')),
             'Connection': 'close'
     }
-    es_client = Elasticsearch(hosts=os.getenv("ES_HOST"),
+    es_client = Elasticsearch(hosts=os.getenv("ES_DEV_V8_HOST"),
                               headers=header,
                             #   http_auth=('test', 'test'),
                               verify_certs=False,
@@ -78,10 +78,10 @@ def request_es():
             'Connection': 'close'
     }
     # res = requests.get(url=host, auth=HTTPBasicAuth("test", "test"), verify=False)
-    res = requests.get(url=os.getenv("ES_HOST"), headers=header, verify=False)
+    res = requests.get(url=os.getenv("ES_DEV_V8_HOST"), headers=header, verify=False)
     print(json.dumps(res.json(), indent=2))
 
-    res = requests.get(url="{}/{}/_search".format(os.getenv("ES_HOST"), INDEX), verify=False, headers=header)
+    res = requests.get(url="{}/{}/_search".format(os.getenv("ES_DEV_V8_HOST"), INDEX), verify=False, headers=header)
     print(json.dumps(res.json(), indent=2))
 
 
@@ -127,13 +127,14 @@ def es_certificates():
     ''' https://stackoverflow.com/questions/61961725/how-to-connect-to-elasticsearch-with-python-using-ssl'''
 
     """ raise HTTP_EXCEPTIONS.get(status_code, TransportError)(elasticsearch.exceptions.AuthenticationException: AuthenticationException(401, 'Unauthorized') without header"""
-    es_client = Elasticsearch(hosts=os.getenv("ES_HOST"),
+    es_client = Elasticsearch(hosts=os.getenv("ES_DEV_V8_HOST"),
                               headers=header,
                               use_ssl=True, # Useful if the connection is using SSL. If no, SSL certificates will not be validated
-                              ca_certs="upgrade-script/cert_files/dev/root-ca.pem",
-                              client_cert="upgrade-script/cert_files/dev/kirk.pem",
-                              client_key="upgrade-script/cert_files/dev/kirk-key.pem",
-                              verify_certs=True,
+                              ca_certs="upgrade-script/cert_files/dev_certs/root-ca.pem",
+                            #   client_cert="upgrade-script/cert_files/dev/kirk.pem",
+                            #   client_key="upgrade-script/cert_files/dev/kirk-key.pem",
+                            #   verify_certs=True,
+                              verify_certs=False,
                               max_retries=0,
                               timeout=5)
     print(json.dumps(es_client.cluster.health(), indent=2))
@@ -145,14 +146,15 @@ def es_certificates():
         }
     }
     resp = es_client.search(index=INDEX, body=query_all)
-    print("Got {} hits:".format(resp["hits"]["total"]["value"]))
-    print(json.dumps(resp['hits']['hits'], indent=2))
+    if resp:
+        print("Got {} hits:".format(resp["hits"]["total"]["value"]))
+        print(json.dumps(resp['hits']['hits'], indent=2))
     '''
     for hit in resp["hits"]["hits"]:
         print("{}".format(hit["_source"]))
     '''
-    resp = es_client.get(index=INDEX, id=1)
-    print(json.dumps(resp['_source'], indent=2))
+    # resp = es_client.get(index=INDEX, id=1)
+    # print(json.dumps(resp['_source'], indent=2))
     
 
 
@@ -183,11 +185,22 @@ def request_es_certificates():
             'Authorization' : '{}'.format(os.getenv('BASIC_AUTH')),
             'Connection': 'close'
     }
-    res = requests.get(url=os.getenv("ES_HOST"), verify=False, cert=(r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk.pem', r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk-key.pem'))
-    print(json.dumps(res.json(), indent=2))
-    print('\n\n')
-    res = requests.get(url="{}/{}/_search".format(os.getenv("ES_HOST"), INDEX), verify=False, cert=(r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk.pem', r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk-key.pem'))
-    print(json.dumps(res.json(), indent=2))
+    # res = requests.get(url=os.getenv("ES_DEV_V8_HOST"), verify=False, cert=(r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk.pem', r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk-key.pem'))
+    
+    ''' (Caused by SSLError('Client private key is encrypted, password is required'))'''
+    ''' The passphrase is used to protect and encrypt the private key.  it must be decrypted before use in any transaction with that passphrase'''
+    try:
+        res = requests.get(url=os.getenv("ES_DEV_V8_HOST"), verify=False, 
+                        cert=(r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev_certs\es_admin.pem',
+                                r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev_certs\es_admin.key'
+                                ),
+                        )
+        print(json.dumps(res.json(), indent=2))
+        print('\n\n')
+        # res = requests.get(url="{}/{}/_search".format(os.getenv("ES_DEV_V8_HOST"), INDEX), verify=False, cert=(r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk.pem', r'C:\Users\euiyoung.hwang\Git_Workspace\ELK-Stack-Upgrade\upgrade-script\cert_files\dev\kirk-key.pem'))
+        # print(json.dumps(res.json(), indent=2))
+    except Exception as e:
+        print(e)
     
 
 if __name__ == '__main__':
@@ -225,12 +238,10 @@ if __name__ == '__main__':
     '''
     # print('\n-----')
     # request_es()
+    # es_certificates()
     # print('\n-----')
     
     # print('\n-----')
-    # request_es_certificates()
+    request_es_certificates()
     # print('\n-----')
     
-    print('\n-----')
-    es_certificates()
-    print('\n-----')

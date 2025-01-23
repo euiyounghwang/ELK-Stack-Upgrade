@@ -122,7 +122,7 @@ if __name__ == "__main__":
     
     '''
     Generate the command for reindexing
-    (.venv) ➜  python ./upgrade-script/reindexing-command-generate-script --es http://source_es_cluster:9200 ---ts http://target_es_cluster:9201
+    (.venv) ➜  python ./upgrade-script/reindexing-command-generate-script.py --es http://source_es_cluster:9200 --ts http://target_es_cluster:9201
     '''
 
     parser = argparse.ArgumentParser(description="Index into Elasticsearch using this script")
