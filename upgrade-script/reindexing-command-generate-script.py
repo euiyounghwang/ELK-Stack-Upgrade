@@ -62,6 +62,7 @@ def work(es_source_host, es_target_host):
             # print(ranked_keys)
 
             # for k, v in ranked_index.items():
+            ''' create python script with argument for reindexing'''
             for k in ranked_keys:
                 f.write(f"\n# Index : {ranked_index[k].get('each_index')}, docs : {int(k):,}" + '\n')
                 if int(k) > DOCS_CNT:
@@ -72,6 +73,12 @@ def work(es_source_host, es_target_host):
                     # print('nop, wow', v)
                     f.write(f"python ./Search-reindexing-script.py --es {source_host} --source_index {ranked_index[k].get('each_index')} --type {ranked_index[k].get('get_type')} --ts {target_host}" + '\n')
                     # f.write('\n')
+
+            ''' create tracking counts on each ES indices before reindexing'''
+            f.write(f"\n\nSource ES Cluster\tES Indices\tCount")
+            for k in ranked_keys:
+                f.write(f"\n{source_host}\t{ranked_index[k].get('each_index')}\t{int(k):,}")
+
             
 
     es_obj_s = Search(host=es_source_host)
