@@ -778,6 +778,36 @@ Extraction complete
 Plugin installation complete
 [devuser@gsa02 kibana-7.9.0-linux-x86_64]$ 
 
+```bash
+# =================== System: Kibana Server (Optional) ===================
+# Enables SSL and paths to the PEM-format SSL certificate and SSL key files, respectively.
+# These settings enable SSL for outgoing requests from the Kibana server to the browser.
+server.ssl.enabled: true
+server.ssl.certificate: /apps/kibana/kibana-8.17.0/config/certs/es_admin.pem
+server.ssl.key: /apps/kibana/kibana-8.17.0/config/certs/es_admin.key
+server.ssl.keyPassphrase: test
+
+# =================== System: Elasticsearch ===================
+# The URLs of the Elasticsearch instances to use for all your queries.
+elasticsearch.hosts: ["https://localhost1.test.com:9201", "https://localhost2.test:9201", "https://localhost3.test.com:9201"]
+#elasticsearch.hosts: ["https://localhost1.test.com:9201"]
+
+# If your Elasticsearch is protected with basic authentication, these settings provide
+# the username and password that the Kibana server uses to perform maintenance on the Kibana
+# index at startup. Your Kibana users still need to authenticate with Elasticsearch, which
+# is proxied through the Kibana server.
+elasticsearch.username: "kibanaserver"
+elasticsearch.password: "kibanaserver"
+
+elasticsearch.requestHeadersWhitelist: ["Authorization", "sgtenant"]
+
+#elasticsearch.ssl.verificationMode: none
+elasticsearch.ssl.certificateAuthorities: ["/apps/kibana/kibana-8.17.0/config/certs/root-ca.pem"]
+
+security.showInsecureClusterWarning: false
+searchguard.allow_client_certificates: true
+
+# Kibana can also authenticate to Elasticsearch via "service account to
 
 # is proxied through the Kibana server.
 elasticsearch.username: "kibanaserver"
@@ -787,9 +817,9 @@ elasticsearch.password: "kibanaserver"
 elasticsearch.ssl.verificationMode: none
 elasticsearch.requestHeadersWhitelist: ["Authorization", "sgtenant"]
 security.showInsecureClusterWarning: false
+```
 
 # - LOGO (/apps/kibana/kibana-8.12.2/plugins/searchguard/public/assets)
-
 
 /home/ES/kibana-7.9.0-linux-x86_64/plugins/searchguard/public/apps/loginlogin.html
 
@@ -798,7 +828,7 @@ COPY /apps/kibana/kibana-8.12.2/plugins/searchguard/public/assets/searchguard_lo
 # Run
 nohup sudo /apps/kibana/kibana-8.12.2/bin/kibana --allow-root &> /dev/null &
 
-sudo /apps/kibana/latest/bin/kibana &
+sudo /apps/kibana/latest/bin/kibana --allow-root &
 sudo netstat -nlp | grep :5601
 ```
 
