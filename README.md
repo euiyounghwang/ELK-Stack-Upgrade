@@ -827,6 +827,7 @@ COPY /apps/kibana/kibana-8.12.2/plugins/searchguard/public/assets/searchguard_lo
 
 # Run
 nohup sudo /apps/kibana/kibana-8.12.2/bin/kibana --allow-root &> /dev/null &
+nohup sudo /apps/kibana/kibana-8.17.0/bin/kibana --allow-root &> /dev/null &
 
 sudo /apps/kibana/latest/bin/kibana --allow-root &
 sudo netstat -nlp | grep :5601

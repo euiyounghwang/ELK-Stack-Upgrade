@@ -67,3 +67,19 @@ web_server_ssl_key = ./certs/domain.key
 openssl x509 -in ./airflow.crt -text -noout
 openssl x509 -in ./airflow.crt -subject -noout
 openssl x509 -in ./airflow.crt -noout -dates
+
+# airflow with ssl docker : https://www.bearpooh.com/126
+
+'''
+https://airflow.apache.org/docs/apache-airflow/stable/security/webserver.html
+
+SSL can be enabled by providing a certificate and key. Once enabled, be sure to use “https://” in your browser.
+
+[webserver]
+web_server_ssl_cert = <path to cert>
+web_server_ssl_key = <path to key>
+
+'''
+
+
+

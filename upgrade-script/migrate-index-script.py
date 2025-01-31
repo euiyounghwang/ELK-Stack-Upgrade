@@ -169,16 +169,20 @@ def work(es_source_client, es_target_client):
                     get_mapping_from_es_v5_to_es_8(es_t_client, each_index)
 
     ''' update aliase to ES v.8'''
+    migrated_total_indices_cnt = 0
     if is_update_aliase:
         for each_index in source_idx_lists:
-            if '.' not in each_index:
+            if '.' not in each_index and (each_index.startswith("wx_") or each_index.startswith("om_") or each_index.startswith("es_") or each_index.startswith("archive_es_")):
+                print(f"each_index : {each_index}")
                 if es_t_client.indices.exists("{}{}".format(Index_Prefix, each_index)):
                     if each_index in get_alias_dict.keys():
                         logging.info(f"Alias Printout : {each_index}, {get_alias_dict.get(each_index)}")
                         response = es_t_client.indices.put_alias("{}{}".format(Index_Prefix, each_index), ''.join(get_alias_dict.get(each_index)))
                         logging.info(f"response : {response}")
                         logging.info(f"Success with indics : {each_index}, alias : {''.join(get_alias_dict.get(each_index))}")
-                    
+                        migrated_total_indices_cnt +=1
+
+    logging.info(f"Migrated Indices : {migrated_total_indices_cnt}")                    
     
 
 
