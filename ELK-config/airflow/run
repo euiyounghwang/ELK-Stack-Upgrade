@@ -36,3 +36,17 @@ airflow scheduler -D
 
 #** airflow
 00 00 * * * sudo find /home/biadmin/airflow/logs/scheduler -type d -mtime +0 -exec rm -rf {} \;
+
+
+# https://stackoverflow.com/questions/47883769/how-to-enable-ssl-on-apache-airflow
+# airflow https
+# Go to AIRFLOW_HOME -> airflow.cfg. It has section named [webserver], under that there are two config properties like below: web_server_ssl_cert = web_server_ssl_key = if there is no value like above means Airflow webserver is running on http (without certificate).
+openssl req -newkey rsa:2048 -nodes -keyout domain.key -x509 -days 365 -out airflow.crt
+
+# Paths to the SSL certificate and key for the web server. When both are
+# provided SSL will be enabled. This does not change the web server port.
+web_server_ssl_cert = ./certs/airflow.crt
+
+# Paths to the SSL certificate and key for the web server. When both are
+# provided SSL will be enabled. This does not change the web server port.
+web_server_ssl_key = ./certs/domain.key
