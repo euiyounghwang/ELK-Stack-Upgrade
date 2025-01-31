@@ -43,6 +43,17 @@ airflow scheduler -D
 # Go to AIRFLOW_HOME -> airflow.cfg. It has section named [webserver], under that there are two config properties like below: web_server_ssl_cert = web_server_ssl_key = if there is no value like above means Airflow webserver is running on http (without certificate).
 openssl req -newkey rsa:2048 -nodes -keyout domain.key -x509 -days 365 -out airflow.crt
 
+
+'''
+To enable SSL, use .p12 certificate (one you must have ordered) and use openssl to extract certificate and private key from .p12 file. openssl mostly ships with Linux so you can directly run on linux terminal.
+
+Step1: Extract certificate using below command openssl pkcs12 -in /path/cert.p12 -nokeys -clcerts -out /path/mycert.crt
+
+Step2: Extract key using below command openssl pkcs12 -in /path/cert.p12 -nocerts -out /path/mykey.key
+
+Step3: Once certificate and key is generated, update airflow.cfg for web_server_ssl_cert and web_server_ssl_key. Restart Airflow webserver.. are you are done. Browse Airflow UI with https.
+'''
+
 # Paths to the SSL certificate and key for the web server. When both are
 # provided SSL will be enabled. This does not change the web server port.
 web_server_ssl_cert = ./certs/airflow.crt
