@@ -50,3 +50,9 @@ web_server_ssl_cert = ./certs/airflow.crt
 # Paths to the SSL certificate and key for the web server. When both are
 # provided SSL will be enabled. This does not change the web server port.
 web_server_ssl_key = ./certs/domain.key
+
+# --
+
+openssl x509 -in ./airflow.crt -text -noout
+openssl x509 -in ./airflow.crt -subject -noout
+openssl x509 -in ./airflow.crt -noout -dates
