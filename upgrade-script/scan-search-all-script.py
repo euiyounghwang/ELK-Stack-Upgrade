@@ -26,7 +26,7 @@ path = os.path.dirname(os.path.abspath(__file__)) + '/output'
 file_output = path + "/Scan-IDs"
 
 
-def work(es_source_client):
+def work(es_source_client, index_name):
     '''
     Extract all ids via scan API for a mount of records
     '''
@@ -93,33 +93,33 @@ def work(es_source_client):
 
     query = {
         "_source": False,
-	    # 'query': {
-    	#     'match_all': {}
-        # }
-        "query": {
-            "bool": {
-                "must": [
-                    {
-                        "range": {
-                            "ADDTS": {
-                            "gte": "08/10/2020",
-                            "lte": "12/07/2024",
-                            "format": "MM/dd/yyyy"
-                            }
-                        }
-                    },
-                    {
-                        "range": {
-                            "EDITTS": {
-                                "gte": "01/01/2022",
-                                "lte": "12/21/2022",
-                                "format": "MM/dd/yyyy"
-                        }
-                    }
-                  }
-                ]
-            }
+	    'query': {
+    	    'match_all': {}
         }
+        # "query": {
+        #     "bool": {
+        #         "must": [
+        #             {
+        #                 "range": {
+        #                     "ADDTS": {
+        #                     "gte": "08/10/2020",
+        #                     "lte": "12/07/2024",
+        #                     "format": "MM/dd/yyyy"
+        #                     }
+        #                 }
+        #             },
+        #             {
+        #                 "range": {
+        #                     "EDITTS": {
+        #                         "gte": "01/01/2022",
+        #                         "lte": "12/21/2022",
+        #                         "format": "MM/dd/yyyy"
+        #                 }
+        #             }
+        #           }
+        #         ]
+        #     }
+        # }
     }
 
     output_clear()
@@ -128,7 +128,7 @@ def work(es_source_client):
 
     response = helpers.scan(client=es_client, 
                               query=query, 
-                              index='wx_loc_10052020_20_5_1',
+                              index=index_name,
                               size=batch_size,
                               scroll='60m',
                               request_timeout=1800000)
@@ -138,6 +138,7 @@ def work(es_source_client):
     '''
 
     query_ids_from_es = list(set(r['_id'] for r in response))
+    query_ids_from_es.sort()
     export_file(query_ids_from_es)
 
     print('-'*50)
@@ -150,22 +151,26 @@ def work(es_source_client):
 if __name__ == "__main__":
     
     '''
-    (.venv) ➜  python ./upgrade-script/scan-search-all-script.py --es http://source_es_cluster:9200
+    (.venv) ➜  python ./upgrade-script/scan-search-all-script.py --es http://source_es_cluster:9200 --index test
 
     '''
     parser = argparse.ArgumentParser(description="Index into Elasticsearch using this script")
     parser.add_argument('-e', '--es', dest='es', default="http://localhost:9200", help='host source')
+    parser.add_argument('-i', '--index', dest='index', default="test", help='index name')
     args = parser.parse_args()
     
     if args.es:
         es_source_host = args.es
+
+    if args.index:
+        index = args.index
         
     # --
     # Only One process we can use due to 'Global Interpreter Lock'
     # 'Multiprocessing' is that we can use for running with multiple process
     # --
     try:
-        th1 = Thread(target=work, args=(es_source_host, ))
+        th1 = Thread(target=work, args=(es_source_host, index))
         th1.start()
         th1.join()
         

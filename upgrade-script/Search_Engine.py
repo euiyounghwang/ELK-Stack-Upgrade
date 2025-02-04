@@ -26,6 +26,7 @@ class Search():
         self.total_buffer = 0
         self.response_total_time = 0
         self.response_request_cnt = 0
+        self.target_idx = None
         self.actions = []
         
         # self.es_client = Elasticsearch(hosts=host, headers=self.get_headers(), timeout=self.timeout)
@@ -159,6 +160,24 @@ class Search():
         
         return to_replace
     
+
+    def export_file(self, index_name, msg):
+        ''' export to file '''
+        directory = f"./output"
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        with open(directory + f"/{index_name}", "w") as f:
+            f.write(f"# {msg}" + '\n')
+
+
+    def logging_show_msg(self, msg):
+        print('\n\n\n\n')
+        print('-'*30)
+        print(f"{msg}")
+        print('-'*30)
+        print('\n\n\n\n')
+
     
     def buffered_json_to_es(self, raw_json, _index, _type):
         ''' https://opster.com/guides/elasticsearch/how-tos/optimizing-elasticsearch-bulk-indexing-high-performance/ '''
@@ -170,7 +189,8 @@ class Search():
         # [{'_index': 'recommendation_test', '_id': 'cLOXEosBDeViDjrDAL8Z', '_score': 1.0, '_source': {'intern': 'Richard', 'grade': 'bad', 'type': 'grade'}},
         ...]
         '''
-        logging.info("buffered_json_to_es Loading..")
+        self.logging_show_msg(f"buffered_json_to_es Loading.. counts : {len(raw_json)}")
+        self.target_idx = _index
         
         try:
             
@@ -208,8 +228,15 @@ class Search():
                     Bulk_StartTime = datetime.now()
                     
                     response = self.es_client.bulk(body=self.actions)
-                    if str(response['errors']).lower() == 'true':
+                    ''' es v5'''
+                    # if str(response['errors']).lower() == 'true':
+                    ''' es v8'''
+                    if response['errors']:
                         # logging.error(response)
+                        print('\n\n\n\n')
+                        print(response)
+                        self.export_file(self.target_idx, str(response))
+                        print('\n\n\n\n')
                         pass
                     else:
                         logging.info("** indexing ** : {}".format(len(response['items'])))
@@ -250,6 +277,38 @@ class Search():
         except Exception as e:
             print('buffered_json_to_es exception : {}'.format(str(e)))
             pass
+
+
+    def remained_buffered_json_to_es(self):
+        ''' push remain buffered json to target cluster'''
+        
+        self.logging_show_msg(f"remained_buffered_json_to_es.. counts : {len(self.actions)}")
+        
+        Bulk_StartTime = datetime.now()
+        response = self.es_client.bulk(body=self.actions)
+        ''' es v5'''
+        # if str(response['errors']).lower() == 'true':
+        ''' es v8'''
+        if response['errors']:
+            # logging.error(response)
+            print('\n\n\n\n')
+            print(response)
+            self.export_file(self.target_idx, str(response))
+            print('\n\n\n\n')
+            pass
+        else:
+            logging.info("** remain indexing ** : {}".format(len(response['items'])))
+            
+    
+        Bulk_EndTime = datetime.now()
+        ''' accumulate response_total_time'''
+        self.response_total_time += float(str((Bulk_EndTime - Bulk_StartTime).seconds) + '.' + str((Bulk_EndTime - Bulk_StartTime).microseconds).zfill(6)[:2])
+        self.response_request_cnt += 1
+        logging.info(f"response_total_time :{self.response_total_time}, response_request_cnt = {self.response_request_cnt}")
+
+        del self.actions[:]
+        self.total_count = 0
+        self.total_buffer = 0
                 
 
     def buffered_df_to_es(self, df, _index):

@@ -147,13 +147,23 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
         
         # time.sleep(1)
 
+    """
     ''' remain bulk'''
     if len(es_obj_t.actions) > 0:
+        print('\n\n\n########')
+        print('REMAINING...')
+        print('########\n\n\n')
         ''' calcuate repsonse time '''
         Bulk_StartTime = datetime.now()
         response = es_obj_t.es_client.bulk(body=es_obj_t.actions)
-        if str(response['errors']).lower() == 'true':
+        ''' es v5'''
+        # if str(response['errors']).lower() == 'true':
+        ''' es v8'''
+        if response['errors']:
             # logging.error(response)
+            print('\n\n\n\n')
+            print(response)
+            print('\n\n\n\n')
             pass
         else:
             logging.info("** remain indexing ** : {}".format(len(response['items'])))
@@ -164,6 +174,7 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
         response_total_time += float(str((Bulk_EndTime - Bulk_StartTime).seconds) + '.' + str((Bulk_EndTime - Bulk_StartTime).microseconds).zfill(6)[:2])
         response_request_cnt +=1
         logging.info(f"response_total_time :{response_total_time}, response_request_cnt = {response_request_cnt}")
+    """
 
     '''
     curl -XPOST -u elastic:gsaadmin "http://localhost:9221/cp_test_omnisearch_v2/_search/?pretty" -H 'Content-Type: application/json' -d' {
@@ -175,7 +186,13 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
         "size" : 0
     }'
     
-    '''    
+    ''' 
+    
+    ''' -------'''
+    ''' Call to remain buffered '''
+    es_obj_t.remained_buffered_json_to_es()
+    ''' -------'''
+    
     body = {
         "track_total_hits" : True,
         "query": { 
@@ -202,6 +219,8 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
 
     logging.info('Configuration : {}, threading id : {}'.format(_crawl_type, threading.get_native_id()))
     logging.info('Running Time for thread: {} Seconds, {} Minutes'.format(Delay_Time, str(timedelta(seconds=(EndTime - StartTime).seconds))))
+
+    global response_total_time, response_request_cnt
 
     response_total_time += es_obj_t.response_total_time
     response_request_cnt += es_obj_t.response_request_cnt
