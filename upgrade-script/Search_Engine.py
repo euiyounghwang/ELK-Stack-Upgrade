@@ -317,7 +317,6 @@ class Search():
         ''' df : Dataframe format, _index: Elasticsearch index name that you want to save '''
         print("buffered_df_to_es Loading..")
         ''' Nan to black for each field value '''
-        
         try:
             df = self.transform_df_to_clean_characters(df)
             actions = []

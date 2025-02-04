@@ -58,14 +58,15 @@ def work(es_source_host, es_target_host):
             ''' call to making_script'''
             ''' python ./Search-reindexing-script.py --es http://localhost:9200 --source_index test_index --type test_index_doc --ts https://localhost:9201 '''
 
-            ranked_keys = sorted(ranked_index, reverse=True)
+            # ranked_keys = sorted(ranked_index, reverse=True)
+            ranked_keys = dict(sorted(ranked_index.items(), key = lambda x: (x[1]["count"]), reverse=True))
             # print(ranked_keys)
 
             # for k, v in ranked_index.items():
             ''' create python script with argument for reindexing'''
             for k in ranked_keys:
-                f.write(f"\n# Index : {ranked_index[k].get('each_index')}, docs : {int(k):,}" + '\n')
-                if int(k) > DOCS_CNT:
+                f.write(f"\n# Index : {ranked_index[k].get('each_index')}, docs : {ranked_index[k].get('count'):,}" + '\n')
+                if int(ranked_index[k].get('count')) > DOCS_CNT:
                     # print('wow', v)
                     f.write(f"nohup python ./Search-reindexing-script.py --es {source_host} --source_index {ranked_index[k].get('each_index')} --type {ranked_index[k].get('get_type')} --ts {target_host} > {ranked_index[k].get('get_type')}.log 2>&1 </dev/null &" + '\n')
                     # f.write('\n')
@@ -77,7 +78,7 @@ def work(es_source_host, es_target_host):
             ''' create tracking counts on each ES indices before reindexing'''
             f.write(f"\n\nSource ES Cluster\tES Indices\tCount")
             for k in ranked_keys:
-                f.write(f"\n{source_host}\t{ranked_index[k].get('each_index')}\t{int(k):,}")
+                f.write(f"\n{source_host}\t{ranked_index[k].get('each_index')}\t{int(ranked_index[k].get('count')):,}")
 
             
 
@@ -102,12 +103,14 @@ def work(es_source_host, es_target_host):
             # print(get_type)
             res_count = es_client.count(index=each_index, body={'query': { 'match_all' : {}}})["count"]
 
+            ''' extract output command for reindexing if count is grater than zero'''
             if int(res_count) > 0:
                 ranked_index.update(
                                 {
-                                    int(res_count) : {
+                                    each_index : {
                                         "each_index" : each_index,
-                                        "get_type" : get_type
+                                        "get_type" : get_type,
+                                        "count" : int(res_count)
                                 }
                     }
                 )
