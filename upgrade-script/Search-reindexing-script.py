@@ -26,6 +26,8 @@ load_dotenv()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
+lock = threading.Lock() 
+
 
 def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _shards_num=None, body=None, _crawl_type=None):
     ''' 
@@ -220,11 +222,15 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type, _sha
     logging.info('Configuration : {}, threading id : {}'.format(_crawl_type, threading.get_native_id()))
     logging.info('Running Time for thread: {} Seconds, {} Minutes'.format(Delay_Time, str(timedelta(seconds=(EndTime - StartTime).seconds))))
 
-    global response_total_time, response_request_cnt
+    global response_total_time, response_request_cnt, error_flag_list
 
+    lock.acquire()
     response_total_time += es_obj_t.response_total_time
     response_request_cnt += es_obj_t.response_request_cnt
 
+    ''' Update any error if reindexing threads hava an error'''
+    error_flag_list.append(es_obj_t.error_flag) 
+    lock.release()
 
 
 
@@ -245,6 +251,7 @@ if __name__ == "__main__":
 
     alias_dict = {}
     total_count, response_total_time, response_request_cnt = 0, 0, 0
+    error_flag_list = []
     
     if args.es:
         es_source_host = args.es
@@ -534,6 +541,10 @@ if __name__ == "__main__":
     # avg_response_time_ms = "{}/ms".format(str(round(avg_response_time*1000.0, 3))) if avg_response_time < 1 else "{}/ms".format(str(round(avg_response_time, 3)))
     # logging.info('*Average response time : {}/s, *Average response time : {}'.format(avg_response_time))
     logging.info("---")
+    logging.info("\n")
+    # logging.info(error_flag_list)
+    logging.info(f"The number of theads with object for Search-Engine : {len(error_flag_list)}")
+    logging.info(f"Verify if reindexing script for index : {es_target_index} has an error {any(error_flag_list)}")
     logging.info("\n")
     '''' --------------------------'''
   

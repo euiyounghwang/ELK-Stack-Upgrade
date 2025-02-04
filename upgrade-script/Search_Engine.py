@@ -28,6 +28,7 @@ class Search():
         self.response_request_cnt = 0
         self.target_idx = None
         self.actions = []
+        self.error_flag = False
         
         # self.es_client = Elasticsearch(hosts=host, headers=self.get_headers(), timeout=self.timeout)
         # create a new instance of the Elasticsearch client class
@@ -163,6 +164,7 @@ class Search():
 
     def export_file(self, index_name, msg):
         ''' export to file '''
+        self.error_flag = True
         directory = f"./output"
         if not os.path.exists(directory):
             os.makedirs(directory)
