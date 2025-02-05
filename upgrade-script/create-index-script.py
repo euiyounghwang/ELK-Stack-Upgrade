@@ -53,7 +53,8 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type):
         try:
             # logging.info(mapping)
             if es_t_client.indices.exists(index):
-                logging.info('Alreday exists : {}'.format(index))
+                raise Exception("Index has already exist")
+                # logging.info('Alreday exists : {}'.format(index))
                 # es_t_client.indices.delete(index)
                 
             # now create a new index
