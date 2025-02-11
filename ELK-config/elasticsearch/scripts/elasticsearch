@@ -56,7 +56,22 @@ prog="elasticsearch"
 pidfile="$PID_DIR/${prog}.pid"
 
 export ES_JAVA_OPTS
-export JAVA_HOME="/apps/java/latest"
+#--
+# https://stackoverflow.com/questions/1924136/environment-variable-to-control-java-io-tmpdir
+export _JAVA_OPTIONS=-Djava.io.tmpdir=/apps/elasticsearch/latest/tmp
+
+#--
+# Run elasticsearch with openJDK
+#JAVA_HOME="/apps/elasticsearch/latest/jdk"
+JAVA_HOME="/apps/java/openlogic-openjdk-17.0.13+11-linux-x64"
+#JAVA_HOME="/apps/java/openlogic-openjdk-21.0.5+11-linux-x64"
+ES_JAVA_HOME=$JAVA_HOME
+
+export JAVA_HOME
+export ES_JAVA_HOME
+# --
+
+
 export ES_PATH_CONF
 export ES_STARTUP_SLEEP_TIME
 
