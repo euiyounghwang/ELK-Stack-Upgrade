@@ -1,43 +1,41 @@
 #!/bin/bash
 set -e
-ES_ALERT_UI_SERVICE_ALL_EXPORT_PATH='C://Users/euiyoung.hwang/Git_Workspace/ELK-Stack-Upgrade/jupyter-workflow/'
-#ES_ALERT_UI_SERVICE_ALL_EXPORT_PATH='/home/devuser/monitoring/jupyter_notebook/'
+#ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH='C://Users/euiyoung.hwang/Git_Workspace/ELK-Stack-Upgrade/jupyter-workflow/'
+ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH='/apps/monitoring_script/apps/gradio/es_mappings/'
 SERVICE_NAME=es-mapping-compare-ui-service-all-service
 
-#PATH=$PATH:$ES_ALERT_UI_SERVICE_ALL_EXPORT_PATH/bin
-
-SCRIPTDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-#echo $SCRIPTDIR
-cd $SCRIPTDIR
+#PATH=$PATH:$ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH/bin
 
 VENV=".venv"
 
 # Python 3.11.7 with Window
-if [ -d "$VENV/bin" ]; then
-    source $ES_ALERT_UI_SERVICE_ALL_EXPORT_PATH/$VENV/bin/activate
+if [ -d "$ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH/$VENV/bin" ]; then
+    source $ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH/$VENV/bin/activate
 else
-    source $ES_ALERT_UI_SERVICE_ALL_EXPORT_PATH/$VENV/Scripts/activate
+    source $ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH/$VENV/Scripts/activate
 fi
 
 
 API_HOST="localhost"
 export API_HOST
 
-# gradio run $SCRIPTDIR/Alert_Update.py 
+# gradio run $SCRIPTDIR/Alert_Update.py
 # python $SCRIPTDIR/Alert_Update.py
+
+# /etc/init.d/ via init script --> sudo service gradio_es_mapping_service status
 
 # See how we were called.
 case "$1" in
   start)
         # Start daemon.
         echo "🦄 Starting $SERVICE_NAME";
-        #nohup python $SCRIPTDIR/Alert_Update.py &> /dev/null &
-        python $SCRIPTDIR/Alert_Update.py
+        #nohup python $$ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH/gradio_es_mapping_service.py &> /dev/null &
+        python $$ES_MAPPINGS_UI_SERVICE_ALL_EXPORT_PATH/gradio_es_mapping_service.py
         ;;
   stop)
         # Stop daemons.
         echo "🦄 Shutting down $SERVICE_NAME";
-        pid=`ps ax | grep -i '/Alert_Update.py' | grep -v grep | awk '{print $1}'`
+        pid=`ps ax | grep -i '/gradio_es_mapping_service.py' | grep -v grep | awk '{print $1}'`
         if [ -n "$pid" ]
           then
           kill -9 $pid
@@ -51,7 +49,7 @@ case "$1" in
         $0 start
         ;;
   status)
-        pid=`ps ax | grep -i '/Alert_Update.py' | grep -v grep | awk '{print $1}'`
+        pid=`ps ax | grep -i '/gradio_es_mapping_service.py' | grep -v grep | awk '{print $1}'`
         if [ -n "$pid" ]
           then
           echo "🦄 $SERVICE_NAME is Running as PID: $pid"
