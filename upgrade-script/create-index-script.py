@@ -94,11 +94,12 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type):
     get_alias_dict = get_es_api_alias(es_client)
     # print(get_alias_dict)
     
+    idx_cnt = 0
     ''' create index with mappping from ES v.5 after transforming'''
     for each_index in source_idx_lists:
         ''' exclude system indices in the source cluster such as .monitoring-es-7-2024.07.12'''
         if '.' not in each_index:
-           if str(each_index).startswith("om") or str(each_index).startswith("wx") or str(each_index).startswith("es") or str(each_index).startswith("archive"):
+           if str(each_index).startswith("om_") or str(each_index).startswith("wx_") or str(each_index).startswith("es_") or str(each_index).startswith("archive_es_"):
                 print(f'each_index - {each_index}')
                 src_idx_mapping = es_client.indices.get_mapping(index=each_index)
 
@@ -124,6 +125,11 @@ def work(es_source_client, es_target_client, src_idx, dest_idx, index_type):
                     response = es_t_client.indices.put_alias(each_index, ''.join(get_alias_dict.get(each_index)))
                     if response:
                         logging.info(f"Success with indics : {each_index}, alias : {''.join(get_alias_dict.get(each_index))}")
+                idx_cnt += 1
+
+    print('\n\n****')
+    print('Create index : {}'.format(idx_cnt))
+    print('\n\n****')
     
 
 
